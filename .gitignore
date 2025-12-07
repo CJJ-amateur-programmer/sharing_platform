@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+
+.editorconfig
+*.jar
+db/*.db
+files/*
+log/*
+raw_files/*

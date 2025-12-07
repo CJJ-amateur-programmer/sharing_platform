@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Search Client</title>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        h1, h2 { font-weight: 500; }
+        #searchForm {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+        }
+        input[type="text"] { padding: 8px; font-size: 1em; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; }
+        button { padding: 8px 15px; font-size: 1em; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        #results-container { margin-top: 1em; }
+        #results {
+            background-color: #f4f4f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+        #bulkDownloadBtn {
+            margin-bottom: 1em;
+            background-color: #28a745;
+        }
+        #bulkDownloadBtn:not([disabled]):hover { background-color: #218838; }
+        #bulkDownloadBtn[disabled]:hover { cursor: not-allowed; }
+        #bulkDownloadBtn:not([disabled]):active {
+            background-color: #1e7e34; /* 点击时的背景颜色，略深于悬停状态 */
+            transform: scale(0.98); /* 可选：轻微缩小按钮以模拟按下的效果 */
+            transition: background-color 0.3s ease, transform 0.1s ease; /* 添加过渡效果 */
+        }
+        .search-result {
+            padding: 1em;
+            border-bottom: 1px solid #ddd;
+        }
+        .search-result:last-child { border-bottom: none; }
+        .search-result h3 { margin: 0 0 0.25em 0; }
+        .search-result .meta { font-size: 0.9em; color: #555; }
+        .search-result .download-link { color: #007bff; text-decoration: none; cursor: pointer; }
+        .search-result .download-link:hover { text-decoration: underline; }
+        .search-result-content { display: flex; align-items: center; gap: 10px; }
+        .search-result-content input[type="checkbox"] { margin: 0; }
+        .search-result-details { flex-grow: 1; }
+        pre#raw-json {
+            padding: 1em;
+            white-space: pre-wrap; /* To format JSON nicely */
+            word-wrap: break-word;
+        }
+        #error {
+            color: #d9534f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        // Immediately redirect to login if the client-side 'isLoggedIn' cookie is not present.
+        if (!document.cookie.split(';').some((item) => item.trim().startsWith('isLoggedIn=true'))) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <h1>Search API</h1>
+
+    <form id="searchForm">
+        <div>
+            <label for="query">Query:</label>
+            <input type="text" id="query" name="query" placeholder="Enter your search query..." required>
+        </div>
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="results-container">
+        <h2>Results:</h2>
+        <div id="bulk-actions" style="margin-bottom: 1em; display: flex; gap: 10px; align-items: center;">
+            <button id="selectAllBtn" style="display: none;">Select All</button>
+            <button id="bulkDownloadBtn" disabled>Download Selected</button>
+        </div>
+        <div id="results"></div>
+        <pre id="raw-json"></pre> <!-- For debugging or raw view -->
+        <p id="error"></p>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function(event) {
+            // Prevent the default form submission which reloads the page
+            event.preventDefault();
+
+            const queryInput = document.getElementById('query');
+            const resultsContainer = document.getElementById('results');
+            const rawJsonOutput = document.getElementById('raw-json');
+            const errorDiv = document.getElementById('error');
+
+            // Clear previous results and errors
+            resultsContainer.innerHTML = '';
+            rawJsonOutput.textContent = '';
+            errorDiv.textContent = '';
+            document.getElementById('selectAllBtn').style.display = 'none';
+            document.getElementById('bulkDownloadBtn').disabled = true;
+
+            const query = queryInput.value.trim();
+            if (!query) {
+                errorDiv.textContent = 'Please enter a search query.';
+                return;
+            }
+
+            // URI-encode the query string to handle special characters like spaces, &, etc.
+            const encodedQuery = encodeURIComponent(query);
+            const apiUrl = `/api/search?q=${encodedQuery}`;
+
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    // Cookies are sent automatically by the browser.
+                    // No need for Authorization header anymore.
+                });
+
+                const responseBody = await response.text(); // Get response as text first
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login'; // Redirect to login if not authorized
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status} - ${responseBody}`);
+                }
+                
+                // Assuming the response is JSON, parse and format it for display
+                const results = JSON.parse(responseBody);
+                
+                // Optional: show raw JSON for debugging
+                // rawJsonOutput.textContent = JSON.stringify(results, null, 2);
+
+                displayResults(results, resultsContainer);
+
+            } catch (error) {
+                errorDiv.textContent = `An error occurred: ${error.message}`;
+                console.error('Fetch error:', error);
+            }
+        });
+
+        function displayResults(results, container) {
+            if (!Array.isArray(results) || results.length === 0) {
+                container.innerHTML = '<p style="padding: 1em;">No results found.</p>';
+                document.getElementById('selectAllBtn').style.display = 'none';
+                return;
+            }
+
+            results.forEach(file => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result';
+
+                const fileName = `${file.FileName}.${file.FileType}`;
+
+                resultItem.innerHTML = `
+                    <div class="search-result-content">
+                        <input type="checkbox" class="file-checkbox" data-hash="${file.FileHash}">
+                        <div class="search-result-details">
+                            <h3>
+                                <a href="#" class="download-link" data-hash="${file.FileHash}" data-filename="${fileName}">
+                                    ${file.FileName}
+                                </a>
+                            </h3>
+                            <div class="meta">
+                                <span>Size: ${formatBytes(file.FileSize)}</span> | 
+                                <span>Modified: ${formatDate(file.Time)}</span> | 
+                                <span>Type: ${file.FileType}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(resultItem);
+            });
+
+            // Show the 'Select All' button now that there are results
+            document.getElementById('selectAllBtn').style.display = 'inline-block';
+
+            // Add checkbox change listener to show/hide bulk download button
+            container.querySelectorAll('.file-checkbox').forEach(checkbox => checkbox.addEventListener('change', updateBulkActionButtons));
+
+            // Add click listeners to all new download links
+            container.querySelectorAll('.download-link').forEach(link => {
+                link.addEventListener('click', handleDownloadClick);
+            });
+        }
+
+        async function handleDownloadClick(event) {
+            event.preventDefault();
+            const link = event.currentTarget;
+            const fileHash = link.getAttribute('data-hash');
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = ''; // Clear previous errors
+
+            // Step 1: POST to /api/download to get a temporary redirect link
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+                    body: fileHash,
+                    redirect: 'manual' // IMPORTANT: Do not follow redirects automatically.
+                });
+
+                // A 302 redirect will result in a response with type 'opaqueredirect'.
+                // We can't access the 'Location' header directly from JS due to CORS policies,
+                // but we don't need to. The browser-level navigation will handle it.
+                // We just trigger the navigation and the browser does the rest.
+                if (response.status === 302 || response.type === 'opaqueredirect') {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/api/download';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'hashes'; // Give it a name if needed by server, though our server reads raw body
+                    input.value = fileHash;
+                    form.appendChild(input);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+
+                } else {
+                    throw new Error(`Failed to create download link. Status: ${response.status}`);
+                }
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                console.error('Download initiation error:', error);
+            }
+        }
+
+        function updateBulkActionButtons() {
+            const allCheckboxes = document.querySelectorAll('.file-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.file-checkbox:checked');
+            const bulkDownloadBtn = document.getElementById('bulkDownloadBtn');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+
+            // Enable/disable the download button
+            bulkDownloadBtn.disabled = checkedCheckboxes.length === 0;
+
+            // Update the 'Select All' button text
+            if (allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length) {
+                selectAllBtn.textContent = 'Unselect All';
+            } else {
+                selectAllBtn.textContent = 'Select All';
+            }
+        }
+
+        document.getElementById('selectAllBtn').addEventListener('click', function() {
+            const allCheckboxes = document.querySelectorAll('.file-checkbox');
+            const shouldSelectAll = this.textContent === 'Select All';
+
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = shouldSelectAll;
+            });
+
+            // After changing the state of checkboxes, update the buttons
+            updateBulkActionButtons();
+        });
+
+        document.getElementById('bulkDownloadBtn').addEventListener('click', async function() {
+            const selectedCheckboxes = document.querySelectorAll('.file-checkbox:checked');
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '';
+
+            if (this.disabled) {
+                return; // Do nothing if the button is disabled
+            }
+
+            if (selectedCheckboxes.length === 0) {
+                errorDiv.textContent = 'Please select at least one file to download.';
+                return;
+            }
+
+            const fileHashes = Array.from(selectedCheckboxes)
+                .map(cb => cb.getAttribute('data-hash'))
+                .join(',');
+
+            try {
+                // Step 1: POST to /api/download to get a temporary redirect link
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+                    body: fileHashes,
+                    redirect: 'manual' // IMPORTANT: Do not follow redirects automatically.
+                });
+                
+                if (response.status === 302 || response.type === 'opaqueredirect') {
+                    // Use a temporary form to submit the POST request,
+                    // which allows the browser to natively handle the 302 redirect for download.
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/api/download';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'hashes';
+                    input.value = fileHashes;
+                    form.appendChild(input);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                } else {
+                    throw new Error(`Failed to create bulk download link. Status: ${response.status}`);
+                }
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                console.error('Bulk download error:', error);
+            }
+        });
+
+        // Helper functions
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function formatDate(unixTimestamp) {
+            // JS Date constructor expects milliseconds
+            return new Date(unixTimestamp * 1000).toLocaleDateString();
+        }
+    </script>
+
+</body>
+
+</html>
