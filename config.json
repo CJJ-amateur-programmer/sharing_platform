@@ -1,0 +1,6 @@
+{
+  "jwtSecret": "your-very-secret-key-that-is-long-and-secure",
+  "dateAttrNames": ["time"],
+  "numAttrNames": ["filesize"],
+  "selectColumns": "*"
+}

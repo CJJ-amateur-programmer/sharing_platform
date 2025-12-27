@@ -6,7 +6,11 @@
     <title>API Search Client</title>
 
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 2em; 
+            line-height: 1.6; 
+        }
         h1, h2 { font-weight: 500; }
         #searchForm {
             display: flex;
@@ -14,10 +18,26 @@
             gap: 10px;
             max-width: 500px;
         }
-        input[type="text"] { padding: 8px; font-size: 1em; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; }
-        button { padding: 8px 15px; font-size: 1em; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        input[type="text"] { 
+            padding: 8px; 
+            font-size: 1em; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            flex-grow: 1; 
+        }
+        button { 
+            padding: 8px 15px; 
+            font-size: 1em; 
+            cursor: pointer; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+        }
         button:hover { background-color: #0056b3; }
-        #results-container { margin-top: 1em; }
+        #results-container { 
+            margin-top: 1em; 
+        }
         #results {
             background-color: #f4f4f9;
             border: 1px solid #ddd;
@@ -25,15 +45,14 @@
             min-height: 50px;
         }
         #bulkDownloadBtn {
-            margin-bottom: 1em;
             background-color: #28a745;
         }
         #bulkDownloadBtn:not([disabled]):hover { background-color: #218838; }
         #bulkDownloadBtn[disabled]:hover { cursor: not-allowed; }
         #bulkDownloadBtn:not([disabled]):active {
-            background-color: #1e7e34; /* 点击时的背景颜色，略深于悬停状态 */
-            transform: scale(0.98); /* 可选：轻微缩小按钮以模拟按下的效果 */
-            transition: background-color 0.3s ease, transform 0.1s ease; /* 添加过渡效果 */
+            background-color: #1e7e34;
+            transform: scale(0.98);
+            transition: background-color 0.3s ease, transform 0.1s ease;
         }
         .search-result {
             padding: 1em;
@@ -49,12 +68,82 @@
         .search-result-details { flex-grow: 1; }
         pre#raw-json {
             padding: 1em;
-            white-space: pre-wrap; /* To format JSON nicely */
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
         #error {
             color: #d9534f;
             font-weight: bold;
+        }
+        /* 新增样式 */
+        .file-extension {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 4px;
+        }
+        .features-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .features-section h2 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "•";
+            color: #007bff;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .syntax-example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        code {
+            background-color: #dadada;
+        }
+        #bulk-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1em;
+        }
+        #selectAllBtn, #bulkDownloadBtn {
+            padding: 8px 15px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        #selectAllBtn {
+            background-color: #6c757d;
+        }
+        #selectAllBtn:hover {
+            background-color: #5a6268;
+        }
+        /* 新增计数器样式 */
+        #result-counter {
+            margin-bottom: 0.5em;
+            font-size: 0.9em;
+            color: #666;
         }
     </style>
 </head>
@@ -69,6 +158,102 @@
 
     <h1>Search API</h1>
 
+    <!-- 新增功能介绍部分 -->
+    <details class="features-section">
+        <summary>搜索帮助与系统功能 (点击展开)</summary>
+        <h2>搜索语法帮助</h2>
+        <ul class="feature-list">
+            <li>
+                <h3><strong>搜索语法介绍</strong>：</h3>
+                <h4>类似于Google和Bing所支持的语法。以下按<b>优先级从高到低</b>的顺序介绍：</h4>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><code>"text"</code>：引号表示精确匹配。</li>
+                    <li>括号 <code>()</code> 用于控制逻辑优先级。</li>
+                    <li><code>field:value</code>：冒号表示对指定字段进行检索。参见下文“现阶段支持的关键字”部分。</li>
+                    <li><code>value1..value2</code>：两个点表示数值或日期的范围查询（包含起始值，不包含结束值），如 <code>filesize:1024..2048</code>。</li>
+                    <li><code>AND</code>, <code>OR</code>, <code>NOT</code>：支持逻辑组合，其优先级为NOT>AND>OR。以空格隔开的检索语句，默认理解为<code>AND</code>逻辑。</li>
+                </ul>
+                <h4>请注意，所涉及的符号必须为半角（俗称“英文符号”）。</h4>
+                <h4>现阶段支持的关键字，不区分大小写：</h4>
+                字符串关键字支持模糊检索（不带引号）和精确检索（带引号）两种方式。其中，<code>*</code>代表匹配0至任意长的字符串，?代表匹配1个任意字符。
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><code>filename</code>：表示文件名称，不带后缀名。如果不指定检索关键字，默认即检索filename字段。例如，直接搜索<code>大学物理</code>，将会返回所有文件名中带有“大学物理”四个字的文件。</li>
+                    <li><code>filetype</code>：表示文件拓展名。常见的有pdf、doc、docx等。检索时无需带“.”。</li>
+                    <li><code>filehash</code>：代表文件的hash（本数据库中使用SHA-256）。一般查询无需用到此字段。</li>
+                    <li><code>content</code>：代表文件文本内容。由于还没上线自动多模态文件内容识别能力，现阶段均为空字符串。</li>
+                </ul>
+                整数型关键字很难达到取等条件，建议写成范围检索的形式。
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><code>filesize</code>：表示文件大小，单位为字节（B）。换算关系：<code>1 KB = 1,024 B</code>，<code>1 MB = 1,024 KB = 1,048,576 B</code>，<code>1 GB = 1,024 MB = 1,048,576 KB = 1,073,741,824 B</code></li>
+                    <li><code>time</code>：表示文件最后修改时间，一般等同于文件上传时间，按0时0分0秒计。支持的格式为：<code>0102</code>表示今年1月2日，<code>250102</code>表示本世纪25年1月2日，<code>20250102</code>表示2025年1月2日。<b>警告</b>：由于检索区间是左闭右开的，如果需要检索2025年1月1日至2025年1月2日的文件，请写成<code>time:20250101..202501<strong>03</strong></code>，以将2025年1月2日包含在内。</li>
+                </ul>
+                现阶段，大部分的信息都体现在文件名上。后续计划和课程数据、授课教师数据整合，支持<code>course</code>、<code>teacher</code>等字段的检索。
+                <div class="syntax-example">
+                    示例：<code>*</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：返回所有文件。
+                        不推荐使用，当本平台逐步扩张后，此查询返回的结果过多，可能导致浏览器无响应。
+                    </div>
+                </div>
+                <div class="syntax-example">
+                    示例：<code>(filetype:"pdf" OR filetype:doc) 大*物</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：查找满足全部条件的文件：<br>
+                        1. 文件类型要么精确为 "pdf"，要么包含 "doc"（例如，doc，docx）；<br>
+                        2. 并且，文件名包含 "大" 和 "物"，"大" 出现在 "物" 前（例如，"大学物理"，"大学生物理竞赛"）。<br>
+                    </div>
+                </div>
+                <div class="syntax-example">
+                    示例：<code>(filetype:"pdf" OR filetype:doc) 大 物</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：查找满足全部条件的文件：<br>
+                        1. 文件类型要么精确为 "pdf"，要么包含 "doc"（例如，doc，docx）；<br>
+                        2. 并且，文件名同时包含 "大" 和 "物"，没有顺序要求（例如，"大学物理"，"物质科学导论大纲"）。<br>
+                    </div>
+                </div>
+                <div class="syntax-example">
+                    示例：<code>(filetype:"pdf" OR filetype:doc) 数学分析 NOT 工科</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：查找满足全部条件的文件：<br>
+                        1. 文件类型要么精确为 "pdf"，要么包含 "doc"（例如，doc，docx）；<br>
+                        2. 并且，文件名包含 "数学分析"；<br>
+                        3. 并且，文件名不包含 "工科"（这样就排除了 "工科数学分析" ）。<br>
+                    </div>
+                </div>
+                <div class="syntax-example">
+                    示例：<code>(filetype:"pdf" OR filetype:doc) 数?分析</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：查找满足全部条件的文件：<br>
+                        1. 文件类型要么精确为 "pdf"，要么包含 "doc"（例如，doc，docx）；<br>
+                        2. 并且，文件名包含 "数?分析"，可以是"数值分析"，可以是"数学分析"，还可以是"工科数学分析"，但不能是"代数分析"，也不能是"数学院分析"。<br>
+                    </div>
+                </div>
+                <div class="syntax-example">
+                    更复杂的示例：<code>filetype:"pdf" OR filetype:docx world AND (filesize:0..2147483648) NOT hello OR time:000101..1231</code>
+                    <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                        这句查询的含义是：查找满足以下任一条件的文档：<br>
+                        1. 文件类型精确为 "pdf"；<br>
+                        2. 或者，文件类型包含 "docx"，文件名包含 "world"，文件大小在 0 到 2147483648字节（2GB）之间，且文件名不包含 "hello"；<br>
+                        3. 或者，文件的修改日期在本世纪 00 年 1 月 1 日到今年 12 月 31 日之间。
+                    </div>
+                </div>
+            </li>
+        </ul>
+        <h2>功能特点</h2>
+        <ul class="feature-list">
+            <li>
+                <strong>无状态认证</strong>：使用 JWT (JSON Web Token) 进行无状态会话管理，用户登录后获取一个有时效性（30分钟）的 Token，后续请求均通过此 Token 验证身份，有效杜绝未授权访问，且便于未来接入统一认证平台。
+            </li>
+            <li>
+                <strong>高级搜索语法</strong>：通过自主开发的递归下降解析器，将类似搜索引擎的复杂查询语法转化为SQL查询语句，允许用户精确控制搜索条件，同时通过严密的解析逻辑防止SQL注入。
+            </li>
+            <li>
+                <strong>安全防盗链</strong>：文件下载链接是临时的、一次性的，有效防止链接被盗用和滥用。支持单文件下载和多文件批量打包（ZIP）下载。
+            </li>
+        </ul>
+        福利：㊙️zq女装照片大赏！<a href="https://www.bilibili.com/video/BV1GJ411x7h7/" target="_blank">速戳 &gt;&gt;&gt;</a>
+    </details>
+
     <form id="searchForm">
         <div>
             <label for="query">Query:</label>
@@ -79,31 +264,32 @@
 
     <div id="results-container">
         <h2>Results:</h2>
-        <div id="bulk-actions" style="margin-bottom: 1em; display: flex; gap: 10px; align-items: center;">
+        <div id="bulk-actions">
             <button id="selectAllBtn" style="display: none;">Select All</button>
             <button id="bulkDownloadBtn" disabled>Download Selected</button>
         </div>
+        <div id="result-counter">Total results: 0 | Selected: 0</div>
         <div id="results"></div>
-        <pre id="raw-json"></pre> <!-- For debugging or raw view -->
+        <pre id="raw-json"></pre>
         <p id="error"></p>
     </div>
 
     <script>
         document.getElementById('searchForm').addEventListener('submit', async function(event) {
-            // Prevent the default form submission which reloads the page
             event.preventDefault();
 
             const queryInput = document.getElementById('query');
             const resultsContainer = document.getElementById('results');
             const rawJsonOutput = document.getElementById('raw-json');
             const errorDiv = document.getElementById('error');
+            const resultCounter = document.getElementById('result-counter');
 
-            // Clear previous results and errors
             resultsContainer.innerHTML = '';
             rawJsonOutput.textContent = '';
             errorDiv.textContent = '';
             document.getElementById('selectAllBtn').style.display = 'none';
             document.getElementById('bulkDownloadBtn').disabled = true;
+            resultCounter.textContent = 'Total results: 0 | Selected: 0';
 
             const query = queryInput.value.trim();
             if (!query) {
@@ -111,33 +297,24 @@
                 return;
             }
 
-            // URI-encode the query string to handle special characters like spaces, &, etc.
             const encodedQuery = encodeURIComponent(query);
             const apiUrl = `/api/search?q=${encodedQuery}`;
-
 
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    // Cookies are sent automatically by the browser.
-                    // No need for Authorization header anymore.
                 });
 
-                const responseBody = await response.text(); // Get response as text first
+                const responseBody = await response.text();
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        window.location.href = '/login'; // Redirect to login if not authorized
+                        window.location.href = '/login';
                     }
                     throw new Error(`HTTP error! Status: ${response.status} - ${responseBody}`);
                 }
                 
-                // Assuming the response is JSON, parse and format it for display
                 const results = JSON.parse(responseBody);
-                
-                // Optional: show raw JSON for debugging
-                // rawJsonOutput.textContent = JSON.stringify(results, null, 2);
-
                 displayResults(results, resultsContainer);
 
             } catch (error) {
@@ -147,25 +324,30 @@
         });
 
         function displayResults(results, container) {
+            const resultCounter = document.getElementById('result-counter');
+            
             if (!Array.isArray(results) || results.length === 0) {
                 container.innerHTML = '<p style="padding: 1em;">No results found.</p>';
                 document.getElementById('selectAllBtn').style.display = 'none';
+                resultCounter.textContent = 'Total results: 0 | Selected: 0';
                 return;
             }
 
+            container.innerHTML = '';
             results.forEach(file => {
                 const resultItem = document.createElement('div');
                 resultItem.className = 'search-result';
 
-                const fileName = `${file.FileName}.${file.FileType}`;
+                const fileName = `${file.FileName}`;
+                const extension = `<span class="file-extension">.${file.FileType}</span>`;
 
                 resultItem.innerHTML = `
                     <div class="search-result-content">
                         <input type="checkbox" class="file-checkbox" data-hash="${file.FileHash}">
                         <div class="search-result-details">
                             <h3>
-                                <a href="#" class="download-link" data-hash="${file.FileHash}" data-filename="${fileName}">
-                                    ${file.FileName}
+                                <a href="#" class="download-link" data-hash="${file.FileHash}" data-filename="${fileName}.${file.FileType}">
+                                    ${fileName}${extension}
                                 </a>
                             </h3>
                             <div class="meta">
@@ -179,16 +361,24 @@
                 container.appendChild(resultItem);
             });
 
-            // Show the 'Select All' button now that there are results
             document.getElementById('selectAllBtn').style.display = 'inline-block';
+            updateResultCounter();
 
-            // Add checkbox change listener to show/hide bulk download button
-            container.querySelectorAll('.file-checkbox').forEach(checkbox => checkbox.addEventListener('change', updateBulkActionButtons));
+            container.querySelectorAll('.file-checkbox').forEach(checkbox => checkbox.addEventListener('change', function() {
+                updateResultCounter();
+                updateBulkActionButtons();
+            }));
 
-            // Add click listeners to all new download links
             container.querySelectorAll('.download-link').forEach(link => {
                 link.addEventListener('click', handleDownloadClick);
             });
+        }
+
+        function updateResultCounter() {
+            const totalResults = document.querySelectorAll('.file-checkbox').length;
+            const selectedResults = document.querySelectorAll('.file-checkbox:checked').length;
+            const resultCounter = document.getElementById('result-counter');
+            resultCounter.textContent = `Total results: ${totalResults} | Selected: ${selectedResults}`;
         }
 
         async function handleDownloadClick(event) {
@@ -196,21 +386,16 @@
             const link = event.currentTarget;
             const fileHash = link.getAttribute('data-hash');
             const errorDiv = document.getElementById('error');
-            errorDiv.textContent = ''; // Clear previous errors
+            errorDiv.textContent = '';
 
-            // Step 1: POST to /api/download to get a temporary redirect link
             try {
                 const response = await fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
                     body: fileHash,
-                    redirect: 'manual' // IMPORTANT: Do not follow redirects automatically.
+                    redirect: 'manual'
                 });
 
-                // A 302 redirect will result in a response with type 'opaqueredirect'.
-                // We can't access the 'Location' header directly from JS due to CORS policies,
-                // but we don't need to. The browser-level navigation will handle it.
-                // We just trigger the navigation and the browser does the rest.
                 if (response.status === 302 || response.type === 'opaqueredirect') {
                     const form = document.createElement('form');
                     form.method = 'POST';
@@ -218,7 +403,7 @@
 
                     const input = document.createElement('input');
                     input.type = 'hidden';
-                    input.name = 'hashes'; // Give it a name if needed by server, though our server reads raw body
+                    input.name = 'hashes';
                     input.value = fileHash;
                     form.appendChild(input);
 
@@ -241,10 +426,8 @@
             const bulkDownloadBtn = document.getElementById('bulkDownloadBtn');
             const selectAllBtn = document.getElementById('selectAllBtn');
 
-            // Enable/disable the download button
             bulkDownloadBtn.disabled = checkedCheckboxes.length === 0;
 
-            // Update the 'Select All' button text
             if (allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length) {
                 selectAllBtn.textContent = 'Unselect All';
             } else {
@@ -260,7 +443,7 @@
                 checkbox.checked = shouldSelectAll;
             });
 
-            // After changing the state of checkboxes, update the buttons
+            updateResultCounter();
             updateBulkActionButtons();
         });
 
@@ -270,7 +453,7 @@
             errorDiv.textContent = '';
 
             if (this.disabled) {
-                return; // Do nothing if the button is disabled
+                return;
             }
 
             if (selectedCheckboxes.length === 0) {
@@ -283,17 +466,14 @@
                 .join(',');
 
             try {
-                // Step 1: POST to /api/download to get a temporary redirect link
                 const response = await fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
                     body: fileHashes,
-                    redirect: 'manual' // IMPORTANT: Do not follow redirects automatically.
+                    redirect: 'manual'
                 });
                 
                 if (response.status === 302 || response.type === 'opaqueredirect') {
-                    // Use a temporary form to submit the POST request,
-                    // which allows the browser to natively handle the 302 redirect for download.
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = '/api/download';
@@ -316,7 +496,6 @@
             }
         });
 
-        // Helper functions
         function formatBytes(bytes, decimals = 2) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -327,11 +506,9 @@
         }
 
         function formatDate(unixTimestamp) {
-            // JS Date constructor expects milliseconds
             return new Date(unixTimestamp * 1000).toLocaleDateString();
         }
     </script>
 
 </body>
-
 </html>

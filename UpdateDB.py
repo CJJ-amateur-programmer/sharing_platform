@@ -60,7 +60,7 @@ def process_files_and_update_db(raw_dir, dest_dir, db_path):
                     print(f"  - Processing '{file_name}' (Hash: {file_hash[:10]}...)")
 
                     # 3. Update the database
-                    # "INSERT OR REPLACE" will insert a new row, or if a row with the
+                    # "INSERT OR REPLACE" will insert a new row, or if a row with the.encode('utf-8', errors='ignore').decode('utf-8')
                     # same primary key (FileHash) already exists, it will be replaced.
                     cursor.execute("""
                         INSERT OR REPLACE INTO FILE 
@@ -72,9 +72,9 @@ def process_files_and_update_db(raw_dir, dest_dir, db_path):
 
 
                 except IOError as e:
-                    print(f"Error processing file {file_path}: {e}")
+                    print(f"Error processing file {file_path.encode('utf-8', errors='ignore').decode('utf-8')}: {e}")
                 except Exception as e:
-                    print(f"An unexpected error occurred with file {file_path}: {e}")
+                    print(f"An unexpected error occurred with file {file_path.encode('utf-8', errors='ignore').decode('utf-8')}: {e}")
         
         conn.commit()
     print("Database update complete.")

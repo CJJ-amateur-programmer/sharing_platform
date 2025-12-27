@@ -44,7 +44,7 @@ def restore_files_from_db(dest_dir, src_dir, db_path):
                         
                         # 移动文件
                         os.rename(src_file_path, dest_file_path)
-                        print(f"  - Restored '{file_name}.{file_type}'")
+                        print(f"  - Restored '{file_name.encode('utf-8', errors='ignore').decode('utf-8')}.{file_type}'")
                     else:
                         print(f"  - Warning: Source file '{file_hash}' not found in '{src_dir}'")
                 except Exception as e:
