@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BITshare</title>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text-main: #1e293b;
+        --text-sec: #64748b;
+        --border: #e2e8f0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 900px;
+        padding: 2rem;
+        box-sizing: border-box;
+      }
+
+      /* Stats Overlay */
+      .stats-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        font-size: 0.85rem;
+        color: var(--text-sec);
+        z-index: 100;
+        border: 1px solid var(--border);
+      }
+      .stats-header {
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+        display: block;
+      }
+      .stats-row {
+        display: flex;
+        gap: 12px;
+      }
+      .stat-item span {
+        font-weight: bold;
+      }
+      .stat-success {
+        color: #10b981;
+      }
+      .stat-skip {
+        color: #f59e0b;
+      }
+      .stat-fail {
+        color: #ef4444;
+      }
+
+      /* GitHub Link */
+      .github-link {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: var(--text-sec);
+        transition: color 0.2s;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+      }
+      .github-link:hover {
+        color: #333;
+      }
+      .github-link svg {
+        width: 28px;
+        height: 28px;
+        fill: currentColor;
+      }
+
+      /* Header & Search */
+      header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+
+      .subtitle {
+        color: var(--text-sec);
+        font-size: 1.1rem;
+      }
+
+      .search-box-wrapper {
+        position: relative;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        border-radius: 12px;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 1.2rem 1.5rem;
+        font-size: 1.1rem;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        outline: none;
+        transition: all 0.2s;
+        box-sizing: border-box;
+      }
+
+      input[type="text"]:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      }
+
+      /* Results Area */
+      .result-header {
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+      }
+
+      .result-count {
+        font-weight: 600;
+        color: var(--text-main);
+      }
+
+      .actions-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .select-all-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: var(--text-sec);
+        user-select: none;
+      }
+
+      .select-all-wrapper:hover {
+        color: var(--primary);
+      }
+
+      .bulk-btn {
+        background-color: var(--primary);
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+      }
+
+      .bulk-btn:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .bulk-btn:disabled {
+        background-color: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      /* Cards */
+      .card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        border-color: #cbd5e1;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.8rem;
+      }
+
+      .file-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-main);
+        text-decoration: none;
+        margin-right: 1rem;
+        word-break: break-all;
+      }
+
+      .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+      }
+
+      .tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+
+      .tag {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+      }
+
+      .tag-type {
+        background-color: #e0f2fe;
+        color: #0369a1;
+      }
+      .tag-subject {
+        background-color: #fce7f3;
+        color: #be185d;
+      }
+      .tag-year {
+        background-color: #dcfce7;
+        color: #15803d;
+      }
+      .tag-score {
+        background-color: #ffedd5;
+        color: #c2410c;
+      }
+
+      .description {
+        color: var(--text-sec);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .description.expanded {
+        -webkit-line-clamp: unset;
+      }
+
+      .meta-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        border-top: 1px solid var(--border);
+        padding-top: 0.8rem;
+      }
+
+      .download-link {
+        padding: 6px 12px;
+        background: #f1f5f9;
+        color: #475569;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .download-link:hover {
+        background: #e2e8f0;
+      }
+
+      /* Loading */
+      .loader {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+        display: none;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stats-overlay" id="statsOverlay" style="display: none">
+      <span class="stats-header">最近索引状态</span>
+      <div class="stats-row">
+        <div class="stat-item stat-success">
+          完成: <span id="statSuccess">0</span>
+        </div>
+        <div class="stat-item stat-fail">
+          失败: <span id="statFail">0</span>
+        </div>
+      </div>
+      <div
+        style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px"
+        id="statTime"
+      ></div>
+    </div>
+
+    <a
+      href="https://github.com/CJJ-amateur-programmer/sharing_platform"
+      target="_blank"
+      class="github-link"
+      title="GitHub 仓库"
+    >
+      <svg viewBox="0 0 16 16" version="1.1" aria-hidden="true">
+        <path
+          fill-rule="evenodd"
+          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+        ></path>
+      </svg>
+    </a>
+
+    <div class="container">
+      <header>
+        <h1>BITshare</h1>
+        <div class="subtitle">北京理工大学资料数据库</div>
+      </header>
+
+      <div class="search-box-wrapper">
+        <input
+          type="text"
+          class="search-box"
+          id="searchInput"
+          placeholder="搜索课程、年份、资料类型..."
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="result-header">
+        <div class="actions-left">
+          <label class="select-all-wrapper">
+            <input type="checkbox" id="selectAllCheckbox" disabled />
+            <span>全选</span>
+          </label>
+          <span class="result-count" id="resultCount"></span>
+        </div>
+        <button class="bulk-btn" id="bulkBtn" disabled>批量下载 (0)</button>
+      </div>
+
+      <div class="loader" id="loader"></div>
+      <div id="results" class="card-list"></div>
+    </div>
+
+    <script>
+      const queryInput = document.getElementById("query");
+      const resultsDiv = document.getElementById("results");
+      const resultCountDiv = document.getElementById("resultCount");
+      const loader = document.getElementById("loader");
+      const bulkBtn = document.getElementById("bulkBtn");
+      const selectedCountSpan = document.createElement("span"); // We use button text directly now
+
+      // Auth Check & Stats Logic
+      async function checkAuthAndLoadStats() {
+        // 1. Client-side fast check
+        // Using indexOf for compatibility and reliability on raw cookie strings
+        if (document.cookie.indexOf("isLoggedIn=true") === -1) {
+          window.location.href =
+            "/login/?redirect=" + encodeURIComponent(window.location.pathname);
+          return;
+        }
+
+        // 2. Server-side verification & Stats
+        try {
+          const res = await fetch("/api/stats");
+
+          if (res.status === 401 || res.status === 403) {
+            // Invalidate cookie if server says unauthorized
+            document.cookie = "isLoggedIn=; path=/; max-age=0";
+            window.location.href =
+              "/login/?redirect=" +
+              encodeURIComponent(window.location.pathname);
+            return;
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.StartTime) {
+              document.getElementById("statsOverlay").style.display = "block";
+              // "Completed" = Success + Skipped
+              const success = data.SuccessCount || 0;
+              const skipped = data.SkippedCount || 0;
+              const failed = data.FailedCount || 0;
+
+              document.getElementById("statSuccess").textContent =
+                success + skipped;
+              document.getElementById("statFail").textContent = failed;
+              document.getElementById("statFail").title = "Skipped: " + skipped;
+              document.getElementById("statTime").textContent =
+                data.EndTime || "Running...";
+            }
+          }
+        } catch (e) {
+          console.log("Failed to load stats", e);
+        }
+      }
+      checkAuthAndLoadStats();
+
+      // Search Logic
+      let searchTimeout;
+      let currentResults = [];
+      let selectedHashes = new Set();
+
+      // Select All Logic
+      const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+
+      selectAllCheckbox.addEventListener("change", (e) => {
+        const isChecked = e.target.checked;
+        const checkboxes = document.querySelectorAll(".file-checkbox");
+        checkboxes.forEach((cb) => {
+          cb.checked = isChecked;
+          const hash = cb.getAttribute("data-hash");
+          if (isChecked) selectedHashes.add(hash);
+          else selectedHashes.delete(hash);
+        });
+        updateBulkButton();
+      });
+
+      searchInput.addEventListener("input", (e) => {
+        clearTimeout(searchTimeout);
+        if (e.target.value.trim().length > 0) {
+          searchTimeout = setTimeout(() => performSearch(e.target.value), 400); // 400ms delay
+        } else {
+          resultsDiv.innerHTML = "";
+          resultCountDiv.textContent = "";
+        }
+      });
+
+      async function performSearch(query) {
+        loader.style.display = "block";
+        resultsDiv.style.opacity = "0.5";
+
+        try {
+          const response = await fetch(
+            "/api/search?q=" + encodeURIComponent(query),
+            {
+              method: "POST",
+            }
+          );
+
+          if (response.status === 401 || response.status === 403) {
+            window.location.href =
+              "/login/?redirect=" +
+              encodeURIComponent(window.location.pathname);
+            return;
+          }
+
+          const data = await response.json();
+          currentResults = data;
+          renderResults(data);
+        } catch (error) {
+          console.error("Search failed:", error);
+          resultsDiv.innerHTML =
+            '<div style="text-align:center;color:red">Search failed. Please try again.</div>';
+        } finally {
+          loader.style.display = "none";
+          resultsDiv.style.opacity = "1";
+        }
+      }
+
+      function renderResults(files) {
+        resultsDiv.innerHTML = "";
+
+        // Reset Selection on new search?
+        // Better UX to keep selection? No, let's clear to avoid confusion across searches
+        selectedHashes.clear();
+        updateBulkButton();
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.disabled = files.length === 0;
+
+        resultCountDiv.textContent = `找到 ${files.length} 个结果`;
+
+        if (files.length === 0) {
+          resultsDiv.innerHTML =
+            '<div style="text-align:center;color:gray">没有找到相关文件</div>';
+          return;
+        }
+
+        files.forEach((file) => {
+          const card = document.createElement("div");
+          card.className = "card";
+
+          // Determine tags
+          const scoreTag = file.score
+            ? `<span class="tag tag-score">相似度: ${(file.score * 100).toFixed(
+                0
+              )}%</span>`
+            : "";
+          const subjectTag =
+            file.Subject && file.Subject !== "Unknown"
+              ? `<span class="tag tag-subject">${file.Subject}</span>`
+              : "";
+          const yearTag =
+            file.Year && file.Year !== "Unknown"
+              ? `<span class="tag tag-year">${file.Year}</span>`
+              : "";
+
+          const isChecked = selectedHashes.has(file.FileHash) ? "checked" : "";
+
+          card.innerHTML = `
+                <div class="card-header">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="file-checkbox" data-hash="${
+                          file.FileHash
+                        }" ${isChecked} style="margin-right:12px; transform:scale(1.2);">
+                        <a href="#" class="file-title" onclick="downloadSingle('${
+                          file.FileHash
+                        }'); return false;">${file.FileName}.${
+            file.FileType
+          }</a>
+                    </div>
+                </div>
+                
+                <div class="tags">
+                    <span class="tag tag-type">${file.FileType.toUpperCase()}</span>
+                    ${subjectTag}
+                    ${yearTag}
+                    ${scoreTag}
+                </div>
+
+                <div class="description" title="点击展开">${
+                  file.Description || "暂无描述..."
+                }</div>
+
+                <div class="meta-footer">
+                    <span>${formatSize(
+                      file.FileSize
+                    )}<span style="margin: 0 8px">•</span>${formatDate(
+            file.Time
+          )}</span>
+                    <a href="#" class="download-link" onclick="downloadSingle('${
+                      file.FileHash
+                    }'); return false;">下载</a>
+                </div>
+            `;
+
+          // Expand description on click
+          const desc = card.querySelector(".description");
+          desc.addEventListener("click", () =>
+            desc.classList.toggle("expanded")
+          );
+
+          // Checkbox handler
+          const checkbox = card.querySelector(".file-checkbox");
+          checkbox.addEventListener("change", (e) => {
+            if (e.target.checked) {
+              selectedHashes.add(file.FileHash);
+            } else {
+              selectedHashes.delete(file.FileHash);
+            }
+            updateBulkButton(); // Call update AFTER changing set
+
+            // Update Select All State
+            selectAllCheckbox.checked =
+              selectedHashes.size === currentResults.length &&
+              currentResults.length > 0;
+          });
+
+          resultsDiv.appendChild(card);
+        });
+      }
+
+      function updateBulkButton() {
+        bulkBtn.textContent = `批量下载 (${selectedHashes.size})`;
+        bulkBtn.disabled = selectedHashes.size === 0;
+      }
+
+      // Bulk Download Logic
+      bulkBtn.addEventListener("click", () => {
+        if (selectedHashes.size === 0) return;
+        const hashes = Array.from(selectedHashes).join(",");
+        triggerDownload(hashes);
+      });
+
+      // Single Download Logic
+      function downloadSingle(hash) {
+        triggerDownload(hash);
+      }
+
+      function triggerDownload(hashes) {
+        // Use form submission to trigger download and let browser handle the redirect + file save
+        // This prevents the issue where 'fetch' consumes the one-time download token
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/download";
+        form.style.display = "none";
+        // Default enctype is application/x-www-form-urlencoded
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "hashes";
+        input.value = hashes; // Hashes are safe strings not needing extra encoding inside the value
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+
+        // Cleanup
+        setTimeout(() => document.body.removeChild(form), 2000);
+      }
+
+      function formatSize(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+
+      function formatDate(timestamp) {
+        // Timestamp from python might be seconds (Unix) or Milliseconds (Java).
+        // Code says "int(file_stat.st_mtime)" -> Seconds.
+        // Java code expects... actually Java code currently displays raw int usually unless formatted on frontend.
+        // We assume seconds here.
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleDateString();
+      }
+    </script>
+  </body>
+</html>

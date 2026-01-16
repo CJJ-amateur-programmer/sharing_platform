@@ -24,6 +24,9 @@ public class Config {
     private Set<String> dateAttrNames;
     private Set<String> numAttrNames;
     private String selectColumns;
+    private String aiHost;
+    private String aiKey;
+    private String aiModel;
 
     /**
      * Loads configuration from the specified JSON file path.
@@ -80,5 +83,17 @@ public class Config {
 
     public static String getSelectColumns() {
         return instance != null && instance.selectColumns != null ? instance.selectColumns : "*";
+    }
+
+    public static String getAiHost() {
+        return instance != null ? instance.aiHost : null;
+    }
+
+    public static String getAiKey() {
+        return instance != null ? instance.aiKey : null;
+    }
+
+    public static String getAiModel() {
+        return instance != null ? instance.aiModel : null;
     }
 }

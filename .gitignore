@@ -5,3 +5,10 @@ artefact/
 target/
 .editorconfig
 dependency-reduced-pom.xml
+
+log/
+raw_files/
+files/
+db/
+config.json
+script/

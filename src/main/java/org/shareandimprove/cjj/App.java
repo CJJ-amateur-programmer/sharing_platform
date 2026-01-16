@@ -46,9 +46,20 @@ public class App {
             }
         }
 
-        if(!new File(FILE_ROOT_DIR).exists()||!new File(STATIC_DIR).exists()){
-            System.err.println("Either of the following directory does not exist: \n"+FILE_ROOT_DIR+"\n"+STATIC_DIR);
-            System.exit(0);
+        File fileRootFile = new File(FILE_ROOT_DIR);
+        if (!fileRootFile.exists()) {
+            System.out.println("Directory " + FILE_ROOT_DIR + " does not exist. Creating...");
+            if (!fileRootFile.mkdirs()) {
+                System.err.println("Failed to create directory: " + FILE_ROOT_DIR);
+            }
+        }
+
+        File staticFile = new File(STATIC_DIR);
+        if (!staticFile.exists()) {
+             System.out.println("Directory " + STATIC_DIR + " does not exist. Creating...");
+            if (!staticFile.mkdirs()) {
+                System.err.println("Failed to create directory: " + STATIC_DIR);
+            }
         }
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
@@ -58,6 +69,8 @@ public class App {
         server.createContext("/login", new LoginHandler(STATIC_DIR));
         // 2. /api/search for POST queries
         server.createContext("/api/search", new SearchAPIHandler()).getFilters().add(new AuthFilter());
+        // 5. /api/stats (New)
+        server.createContext("/api/stats", new StatsAPIHandler()).getFilters().add(new AuthFilter());
         // 3. /api/download and /download/ for file downloading
         server.createContext("/api/download", downloadHandler).getFilters().add(new AuthFilter());
         server.createContext("/download/", downloadHandler).getFilters().add(new AuthFilter());

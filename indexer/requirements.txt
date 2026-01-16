@@ -1,0 +1,8 @@
+openai
+requests
+pandas
+openpyxl
+python-docx
+PyPDF2
+sentence-transformers
+flask
